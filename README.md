@@ -247,16 +247,257 @@ protected Object execute(CacheOperationInvoker invoker, Object target, Method me
 }        
 ```
 
+Main Class
+```java
+@SpringBootApplication
+@EnableCaching
+public class Application {
+
+	@MyContext(name="Anupama",age=20)
+	public static void main(String[] args) {
+		SpringApplication.run(Application.class, args);
+	}
+
+}
+```
+
+Controller
+```java
+class MyRestController {
+    @RequestMapping(path = "/testemp/{id}",method = RequestMethod.GET)
+    public String testObjectId(@PathVariable("id") Integer id){
+        //Below not used. Instead Cache method called directly
+        //return myService.getName(id);
+        String name = myService.getNameinDB(id);
+        return name;
+    }
+}
+```
+
+Service
+```java
+class MyService{
+    @Cacheable(cacheNames = "emp-cache")
+    //private will not work for cache
+//    private String getNameinDB(Integer id){
+    public String getNameinDB(Integer id){
+        try {
+            Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        return empMap.get(id);
+    }
+}
+```
+
 ## Annotation Types
-* @Bean
+* @Bean : For external libraries beyond Spring
 * @Service,@Repository,@Component,@RestController
 
+* StringUtils Usecase : A better library built on top of Spring with good method features
+
+Method 1 : Creating Object Instance
+```java
+class MyRestController{
+    @RequestMapping(path = "/testemp/{id}",method = RequestMethod.GET)
+    public String testObjectId(@PathVariable("id") Integer id){
+        //Below not used. Instead Cache method called directly
+        //return myService.getName(id);
+        String name = myService.getNameinDB(id);
+
+        StringUtils stringUtils = new StringUtils();
+        name = stringUtils.upperCase(name);
+
+        return name;
+    }
+}
+```
+
+Method 2 : Autowiring in Class
+
+```java
+class MyRestController{
+    @Autowired
+    private StringUtils stringUtils;
+    
+    @RequestMapping(path = "/testemp/{id}",method = RequestMethod.GET)
+    public String testObjectId(@PathVariable("id") Integer id){
+        //Below not used. Instead Cache method called directly
+        //return myService.getName(id);
+        String name = myService.getNameinDB(id);
+
+        name = stringUtils.upperCase(name);
+        return name;
+    }
+}
+```
+
+* Error Description : Field stringUtils in com.anupama.sinha.MyRestController required a bean of type 'org.apache.commons.lang3.StringUtils' that could not be found.
+* So, needs to be defined as @Bean in @Configuration. Bean loaded by Container
+
+```java
+@Configuration
+public class MyConfiguation {
+    @Bean
+    StringUtils stringUtils(){
+        return new StringUtils();
+    }
+}
+```
+
+* Earlier, in Spring, every class(Service, Repository, Controller, etc) needed to be created as Bean separetely. But now, SpringBoot automatically creates for these Annotations
+
+* @SpringBootApplication : @Configuration(@Beans created here) + @ComponentScan + @EnableAutoConfiguration
+
+## Interceptor
+* Intercepts message before reaching Controller and do certain task
+* LoggingInterceptor Class : Override methods of HandlerInterceptor interface: preHandle(), postHandle(), afterCompletion() 
+* Register Interceptor in Context by defining in @Configuration implementing WebMvcConfigurer interface
+
+```java
+@Configuration
+public class WebConfig implements WebMvcConfigurer {
+
+    @Autowired
+    private LoggingInterceptor loggingInterceptor;
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(loggingInterceptor);
+    }
+}
+```
+
+* MDC is thread specific
+* After Completion : MDC.clear()
+
+Console Log : Tomcat assigns Thread from ThreadPool(Max:10K can be spinned) to Caller individually. Reuses, the free thread pool
+Threads here : nio-8081-exec-2,nio-8081-exec-3
+
+```properties
+2021-03-02 14:25:54.647  INFO 22866 --- [nio-8081-exec-2] com.anupama.sinha.LoggingInterceptor     : Incoming request
+2021-03-02 14:25:56.704  INFO 22866 --- [nio-8081-exec-2] MyController.class                       : Controller called for id:1
+2021-03-02 14:25:56.751  INFO 22866 --- [nio-8081-exec-2] com.anupama.sinha.LoggingInterceptor     : Request Completed; execTime=2103ms
+
+2021-03-02 14:26:01.623  INFO 22866 --- [nio-8081-exec-3] com.anupama.sinha.LoggingInterceptor     : Incoming request
+2021-03-02 14:26:01.629  INFO 22866 --- [nio-8081-exec-3] MyController.class                       : Controller called for id:1
+2021-03-02 14:26:01.636  INFO 22866 --- [nio-8081-exec-3] com.anupama.sinha.LoggingInterceptor     : Request Completed; execTime=12ms
+```
+
 ## Loggers
+* Slf4j : Standard/Interface
+* Frameworks : LogBack, Log4j
+* Spring Boot being Opinionated has chosen LogBack as best framework and included in spring-boot-starter-logging in spring-boot-starter-web
+* Method to use Log4j instead
 
-## Spring Data
-* JPA
-* JDBCTemplate
+```xml
+        <dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-logging</artifactId>
+				</exclusion>
+			</exclusions>
+		</dependency>
 
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-log4j2</artifactId>
+		</dependency>
+```
+
+* log4j2.xml : Gives format of log. log folder keeps File Logger. Below format used
+
+```properties
+17:26:20.907 |  INFO | (nio-8082-exec-1) | [LoggingInterceptor] : Incoming request; | uri=/rest/testemp/1; endpoint=testObjectId; queryString=;
+17:26:22.967 |  INFO | (nio-8082-exec-1) | [class] : Controller called for id:1; | uri=/rest/testemp/1; endpoint=testObjectId; queryString=;
+17:26:23.001 |  INFO | (nio-8082-exec-1) | [LoggingInterceptor] : Request Completed; execTime=2098ms; | uri=/rest/testemp/1; endpoint=testObjectId; queryString=;
+```
+
+## Application's JAR usage in local code
+* In application, for which JAR has to be created. Created JAR in .m2 folder
+> mvn clean install
+
+* Copy dependency in pom.xml of Common Library
+```xml
+<dependency>
+	<groupId>com.anupama.sinha</groupId>
+	<artifactId>common-lib</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <scope>system</scope>
+    <systemPath>C://Users/anupama/.m2/common-lib.jar</systemPath>
+</dependency>
+```
+
+* To help CommonLib Application's Bean loading in Context in Main Class
+> @ComponentScan(basePackages = { "com.anupama.sinha.common", "com.anupama.sinha" })
+
+
+## JDBC
+* Java Library for Bridge between Class/Object & Database
+* JDBC -> Physical Socket Connection for JVM & DB -> Query sent -> DB executes -> Result returned -> JDBC converts result to Java Object -> Returned to User -> Connection closed
+* Costly socket connection & memory
+
+## Connection Pool
+* Connection creation saved to improve performance
+* Connection Pool created by Apache Tomcat-JDBC
+* Latest best open source connection pool is Hikari CP which is also provided by Spring Boot as being Opinionated
+
+## Spring Data JPA(Java Persistence API)
+* Only Class/Object needed
+* Query created for @Entity
+* JPA Specification Implementation : Hibernate,iBatis,MyBatis
+* Data JPA : Hibernate + HikariCP(Since 1.6 onwards)
+
+```xml
+<dependency>
+	<groupId>org.springframework.boot</groupId>
+	<artifactId>spring-boot-starter-data-jpa</artifactId>
+</dependency>
+
+<dependency>
+<groupId>mysql</groupId>
+<artifactId>mysql-connector-java</artifactId>
+</dependency>
+```
+
+Properties
+```properties
+spring.datasource.url=jdbc:mysql://localhost:3306/EMP_DB?useSSL=false&allowPublicKeyRetrieval=true
+spring.datasource.username=root
+spring.datasource.password=root
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+spring.jpa.hibernate.ddl-auto=none
+spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect
+spring.jpa.show-sql=true
+spring.jpa.hibernate.naming.physical-strategy=org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+```
+
+Entity
+```java
+@Entity
+@Table(name="EMPLOYEE")
+@Getter
+@Setter
+public class Employee {
+    @Id
+    private Integer id;
+
+    @Column
+    private String name;
+}   
+```
+
+Repository
+```java
+public interface EmployeeRepo extends JpaRepository<Emp,Integer> {
+    
+}
+```
 ## Spring Security
 
 ## Spring Reactive

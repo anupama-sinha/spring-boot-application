@@ -1,11 +1,11 @@
 package com.anupama.sinha;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -22,6 +22,9 @@ public class MyRestController {
 
     @Autowired
     private MyService myService;
+
+    @Autowired
+    private StringUtils stringUtils;
 
     @RequestMapping(path = "/test",method = RequestMethod.GET)
     public String test(){
@@ -55,6 +58,10 @@ public class MyRestController {
         //Below not used. Instead Cache method called directly
         //return myService.getName(id);
         String name = myService.getNameinDB(id);
+
+        //StringUtils stringUtils = new StringUtils();
+        name = stringUtils.upperCase(name);
+        logger.info("Controller called for id:{}", id);
         return name;
     }
 }
