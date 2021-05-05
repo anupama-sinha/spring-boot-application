@@ -504,5 +504,19 @@ public interface EmployeeRepo extends JpaRepository<Emp,Integer> {
 
 ## Spring Cloud
 
+## Internalization(i19n)
+* Used for Session, Cookies, Accept Language Header or a fixed value
+> Work in Progress
+
+## Lombok
+* Java library to enrich many things with Annotation suppport(Eg. Getter, Setter, NoArgsConstructor, Data,etc)
+
+```xml
+ <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.16.6</version>
+  </dependency>
+```
 ## References
 * [Rod Johnson's Book on J2EE over EJB](https://www.google.co.in/books/edition/Expert_One_on_One_J2EE_Development_witho/oAE90y3_Df4C?hl=en&gbpv=0)
