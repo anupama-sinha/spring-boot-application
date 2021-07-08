@@ -148,6 +148,7 @@ public enum RequestMethod {
 
 ## Controller Annotations
 * When @Controller is used, and a String is returned. Spring searches for string.jsp page and returns it
+* Content type of response if text/html. Converts string to filename
 * So, as MVC Pattern below can be done
 ```xml
 <dependency>
@@ -227,7 +228,7 @@ public @interface Cacheable {
 * AOP is used(Aspect Oriented Programming)
 > Written once and injected at any place
 > Method is public
-> Method called from outside the class & not from same class as Proxy refrence(CGLIB Spring being called) is used in object
+> Method called from outside the class & not from same class as Proxy refrence(CGLIB Spring being called) is used in object once @EnableCache is used
 
 * AOP -> Injects code -> Proxy Object(Non invasive Spring as uses Annotation instead of extends/implements)
 * CacheAspectSupport AOP for Cache
@@ -385,6 +386,38 @@ Threads here : nio-8081-exec-2,nio-8081-exec-3
 2021-03-02 14:26:01.636  INFO 22866 --- [nio-8081-exec-3] com.anupama.sinha.LoggingInterceptor     : Request Completed; execTime=12ms
 ```
 
+## Beans
+* @Component + @Bean : Creates singleton instance & returns
+* @Configuration + @Bean : Sends 1st created instance & returns MyConfiguration
+* @Configuration : Meta annotated @Component : Candidates for auto-detection when using annotation-based configuration & classpath scanning, Field/Method level @Autowired. Not class level) + Custom component scan at class level also possible to give package path + @Bran
+* @Configuration : 1/more @Brans+Spring Container processes these beans to generate bean definition & service required at runtime + AnnotationConfigWebAppliationContext/AnnotationConfigApplicationContext
+* @Component : @Repository + @Service + @Configuration + @Controller
+* @Repository : Automatic Persistence Exception Translation enabled -> DataAccessException(For enabling exception transaltion -> Declare PersistenceExceptionTrans;lationPostProcessor bean)
+* @Bean methods are eargerly instantiated at container bootstrap time. So use @Lazy
+* Constraints when authoring @Configuration classes(These must be Non final, non local(May not be declared within a method) & must have default=No-Arg constructor & may not use @Autowired constructor parameters. Any nested configuration classes must be static)
+* @Autowired possible if registered as @Bean
+* Bean definitions inside a DefaultListableBeanFactory variant(Like XmlBeanFactory) are represented as BeanDefinition objects which contain(among other informstion), the following details : A class Name(This is normally the actual implmentation class of the bean being described in the bean definition. However, if the bean is to be constructed by calling a static factory method instead of using normal constructor, this will be actually be the class name of the factory class), Bean behavioural Configurational element(States how the bean should behave in the container i.e. prototype/singleton, autowiring mode, dependency checking mode, initialization & descruction methods),Constructor Arguments & property valuesto set in the newly created beans(Eg. Connections to use the bean that manages a connection pool either pecifed as property or as constructor argument or pool size limit, Other Beans(A bean needs to do its works i.ee. collaborators(also specified as prop or as constructor arguments/dependencies
+
+## Bean Factory
+* Bean Instantiation/Wiring
+* Implementation - XMLBeanFactory(Deprecated Post Spring 3.1)->DefaultListableBeanFactory/XmlBeanDefinitionReader
+* Lazy Loading(Instantiation t getBean()) + Actual Container which instantiates, configures & manages number of beans
+
+## Application Context
+* Bean instantiation/wiring
+* Implementation-ClassPath/FileSystem/WebXMLApplicationContext/AnnotationConfigWebApplicationContext/AnnotationConfigApplicationContext
+* Automatic BeanPostProcessor registration
+* Convenient MessageSource access(For i18n)
+* ApplicationEvent Publication
+* Eager Loading/Pre Loading(Instantiation when spring configuration is loaded by container)
+
+## Scope Description
+* Prototype : Scopes a single bean definition to any number of object instances
+* Singleton: Scopes a single bean definition to a single object instance per Spring IOC Container
+* Request : Scopes a single bean definition to the lifecycle of a single HTTP request, that is each & every HTTP request will have its own instance of a bean created off the back of a single bean definition. Only valid in the context of a web-aware Spring Application Context
+* Session: Scopes a single bean definition to the lifecycle of a HTTP Session. Only valid in the context of a web-aware Spring Application Context
+* Global Session : Scopes a single bean definition to the lifecycle of a global HTTP Session. Typically only valid when used in a portlet context. Only valid in the context of a web aware Spring Application Context
+
 ## Loggers
 * Slf4j : Standard/Interface
 * Frameworks : LogBack, Log4j
@@ -416,6 +449,8 @@ Threads here : nio-8081-exec-2,nio-8081-exec-3
 17:26:22.967 |  INFO | (nio-8082-exec-1) | [class] : Controller called for id:1; | uri=/rest/testemp/1; endpoint=testObjectId; queryString=;
 17:26:23.001 |  INFO | (nio-8082-exec-1) | [LoggingInterceptor] : Request Completed; execTime=2098ms; | uri=/rest/testemp/1; endpoint=testObjectId; queryString=;
 ```
+
+* Check [My Github Logging Project](https://github.com/anupama-sinha/spring-logging-project)
 
 ## Application's JAR usage in local code
 * In application, for which JAR has to be created. Created JAR in .m2 folder
