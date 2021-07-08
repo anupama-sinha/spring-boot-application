@@ -533,6 +533,12 @@ public interface EmployeeRepo extends JpaRepository<Emp,Integer> {
     
 }
 ```
+
+## Maven JAR Creation
+* Maven JAR Plugin
+* Maven Assembly Plugin : Includes above JAR & JAR dependencies also included
+* Maven Shade Plugin : Creates Uber JAR. It merges conflicting JAR dependency
+
 ## Spring Security
 
 ## Spring Reactive
